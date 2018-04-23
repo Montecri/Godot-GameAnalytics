@@ -4,7 +4,7 @@ Apr 23, 2018 - Cristiano Reis Monteiro <cristianomonteiro@gmail.com>
 
 Native GDScript for GameAnalytics in Godot
 
-When first started learning Godot I notice the limitation when it comes to capture game analytics. The vast majority of options are incomplete in the sense that supports only one platform, missing functions etc, besides the regular need to recompile the engine, rebuild export templates, etc.
+When I first started learning Godot I notice the limitation when it comes to capture game analytics. The vast majority of options are incomplete in the sense that supports only one platform, missing functions etc, besides the regular need to recompile the engine, rebuild export templates, etc.
 
 In search of a native, cross platform solution, identified that https://gameanalytics.com/ had a REST API sample in Python
 
@@ -19,6 +19,7 @@ PLEASE NOTE: This GDScript makes use of https://github.com/xsellier/godot-uuid, 
 USAGE INSTRUCTIONS:
 
 . Add GameAnalytics.gd and uuid.gd to your root resources folder
+
 . Add that to your main .gd:
 
 ```python
@@ -46,6 +47,9 @@ Study GameAnalytics.gd and GameAnalytics REST API page to understand what else c
 TODO
 
 . Correctly calculate client_ts offset
+
 . Enable GZip compression (partially done / commented out)
+
 . Better error treatment
+
 . Fix comments and clean up code
