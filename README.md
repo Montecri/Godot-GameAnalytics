@@ -21,24 +21,25 @@ USAGE INSTRUCTIONS:
 . Add GameAnalytics.gd and uuid.gd to your root resources folder
 . Add that to your main .gd:
 
-----------------------------------------------
+```python
 var GAs = load("res://GameAnalytics.gd")
 var GA = GAs.new()
 
-GA.game_key = <your_game_key_supplied_by_GameAnalytics>
-GA.secret_key = <your_secret_key_supplied_by_GameAnalytics>
-GA.base_url = "http://api.gameanalytics.com"
+func _ready():
+  GA.game_key = <your_game_key_supplied_by_GameAnalytics>
+  GA.secret_key = <your_secret_key_supplied_by_GameAnalytics>
+  GA.base_url = "http://api.gameanalytics.com"
 
-# Run once per session
-init_response = GA.request_init()
+  # Run once per session
+  init_response = GA.request_init()
 
-# Add events to queue
-GA.add_to_event_queue(GA.get_test_design_event("player:new_level", 1))
-GA.add_to_event_queue(GA.get_test_design_event("player:new_level", 2))
+  # Add events to queue
+  GA.add_to_event_queue(GA.get_test_design_event("player:new_level", 1))
+  GA.add_to_event_queue(GA.get_test_design_event("player:new_level", 2))
 
-# Submit events and flush queue - return code will indicate success (200) or failure (400, 401, 404)
-var returned = GA.submit_events()
----------------------------------------------
+  # Submit events and flush queue - return code will indicate success (200) or failure (400, 401, 404)
+  var returned = GA.submit_events()
+```
 
 Study GameAnalytics.gd and GameAnalytics REST API page to understand what else can be submitted.
 
