@@ -44,6 +44,16 @@ func _ready():
 
 Study GameAnalytics.gd and GameAnalytics REST API page to understand what else can be submitted.
 
+NOTE: While testing on my Windows machine, GameAnalytics refused "Windows" as a valid os/platform, so I put this code before GA.request_init() to work around that. YMMV
+
+```python
+	if GA.platform == "Windows":
+		GA.platform = "android"
+
+	if GA.os_version == "Windows":
+		GA.os_version = "android 4.4.4"
+ ```
+ 
 TODO
 
 . Correctly calculate client_ts offset
