@@ -160,7 +160,19 @@ func add_to_event_queue(event_dict):
 #        return
 	#annotate_event_with_default_values(event_dict)
 	#annotate_event_with_default_values()
+	# Load saved events, if any
+	var f = File.new()
+	if f.file_exists("user://event_queue"):
+		f.open("user://event_queue", File.READ)
+		state_config['event_queue'] = f.get_var()
+		f.close()
+	
 	state_config['event_queue'].append(event_dict)
+	
+	#Save to file
+	f.open("user://event_queue", File.WRITE)
+	f.store_var(state_config['event_queue'])
+	f.close()
 
 # requesting init URL and returning result
 func request_init():
@@ -176,17 +188,6 @@ func request_init():
 	#var init_payload_json = json.dumps(init_payload)
 	var init_payload_json = to_json(init_payload)
 
-# For GZip compression
-#    var f = File.new()
-#
-#    f.open_compressed("user://temp2", File.WRITE, File.COMPRESSION_GZIP)
-#    f.store_string(init_payload_json)
-#    f.close()
-#
-#    f.open("user://temp2", File.READ)
-#    init_payload_json = f.get_as_text()
-#    f.close()
-
 	var headers = [
 		"Authorization: " + Marshalls.raw_to_base64(hmac_sha256(init_payload_json, secret_key)),
 		"Content-Type: application/json"]
@@ -196,8 +197,7 @@ func request_init():
 	#status_code = None
 	var response_dict
 	var status_code
-	
-	
+		
 	if DEBUG:
 		print(base_url)
 		print(url_init)
@@ -318,9 +318,6 @@ func submit_events():
 #        event_list_json = None
 #        return
 
-	# clear event queue
-	state_config['event_queue'] = []
-
 #    if event_list_json is null:
 #        return
 
@@ -335,7 +332,7 @@ func submit_events():
 
 	# if gzip enabled add the encoding header
 	if use_gzip:
-		headers['Content-Encoding'] = 'gzip'
+		headers.append('Content-Encoding: gzip')
 
 	var err = requests.connect_to_host(base_url,80)
 
@@ -431,6 +428,12 @@ func submit_events():
 
 	if status_code == 200:
 		post_to_log("Events submitted !")
+		# clear event queue
+		# If submitte successfully, then clear queue and remove queu file to not create duplicate entries
+		state_config['event_queue'] = []
+		var dir = Directory.new()
+		dir.remove("user://event_queue")
+
 	else:
 		post_to_log("Event submission FAILED!")
 
@@ -524,14 +527,27 @@ static func merge_dir2(target, patch):
             target[key] = patch[key]
 			
 func get_gzip_string(string_for_gzip):
+    var f = File.new()
+
+    f.open_compressed("user://gzip", File.WRITE, File.COMPRESSION_GZIP)
+    #f.store_buffer(string_for_gzip.to_utf8())
+    f.store_string(string_for_gzip)
+    f.close()
+
+    f.open("user://gzip", File.READ)
+    #var enc_text = f.get_buffer(f.get_len())
+    #get_string_from_utf8()
+    var enc_text = f.get_as_text()
+    #var enc_text = f.get_buffer(f.get_len()).get_string_from_utf8()
+    f.close()
 #    var zip_text_file = StringIO()
 #    var zipper = gzip.GzipFile('wb', zip_text_file)
 #    zipper.write(string_for_gzip)
 #    zipper.close()
 #
 #    enc_text = zip_text_file.getvalue()
-#    return enc_text
-	pass
+    return enc_text
+    pass
 
 
 # add default annotations (will alter the dict by reference)
