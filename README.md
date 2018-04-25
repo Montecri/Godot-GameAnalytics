@@ -42,7 +42,16 @@ func _ready():
   var returned = GA.submit_events()
 ```
 
-Study GameAnalytics.gd and GameAnalytics REST API page to understand what else can be submitted.
+The following GameAnalytics calls are also available:
+
+```python
+add_to_event_queue(get_test_design_event(<string>, <value>))
+add_to_event_queue(get_test_user_event())
+add_to_event_queue(get_test_business_event_dict())
+add_to_event_queue(get_test_session_end_event(200))
+```
+
+Study GameAnalytics.gd (commented examples there) and GameAnalytics REST API page to understand what else can be submitted.
 
 NOTE: While testing on my Windows machine, GameAnalytics refused "Windows" as a valid os/platform, so I put this code before GA.request_init() to work around that. YMMV
 
