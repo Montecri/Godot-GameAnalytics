@@ -25,12 +25,14 @@ var response_code
 #var uuid = "000002"
 var uuid = UUID.v4()
 
-var platform = OS.get_name()
+# For some reason GameAnalytics only accepts lower case. Weird but happened to me
+var platform = OS.get_name().to_lower()
 #var os_version = OS.get_name()
-var os_version = OS.get_name()
+# Couldn't find a way to get OS version yet. Need to adapt for iOS or anything else
+var os_version = "android 4.4.4"
 var sdk_version = 'rest api v2'
-var device = OS.get_model_name()
-var manufacturer = OS.get_name()
+var device = OS.get_model_name().to_lower()
+var manufacturer = OS.get_name().to_lower()
 
 # game information
 var build_version = 'alpha 0.0.1'
@@ -94,7 +96,7 @@ func _ready():
 #		#sys.exit()
 
 	# generate session id
-	generate_new_session_id()
+	#generate_new_session_id()
 	#annotate_event_with_default_values()
 #	add_to_event_queue(get_test_design_event("player:new_level", 1))
 #	add_to_event_queue(get_test_design_event("player:new_level", 2))
@@ -132,6 +134,7 @@ func _ready():
 #    response_code = returned.y
 
 	#sys.exit()
+	pass
 
 #func _process(delta):
 #	# Called every frame. Delta is time since last frame.
@@ -176,11 +179,22 @@ func add_to_event_queue(event_dict):
 
 # requesting init URL and returning result
 func request_init():
+		# Get version number on Android. Need something similar for iOS
+	if platform == "android":
+		var output = []
+		var pid = OS.execute("getprop", ["ro.build.version.release"], true, output)
+		# Trimming new line char at the end
+		output[0] = output[0].substr(0, output[0].length() - 1)
+		os_version = platform + " " + output[0]
+
 	var init_payload = {
 		'platform': platform,
 		'os_version': os_version,
 		'sdk_version': sdk_version
 	}
+	
+	# generate session id
+	generate_new_session_id()
 	
 	# Refreshing url_init since game key might have been changed externally
 	url_init = "/v2/" + game_key + "/init"
@@ -406,7 +420,11 @@ func submit_events():
 	if status_code == 400:
 		post_to_log(status_code_string)
 		post_to_log("Submit events failed due to BAD_REQUEST.")
-
+		# If bad request, then some parameter is very wrong. Eliminating queue in order to no hold submission
+		# In future instances where the bad parameter is no longer existing
+		state_config['event_queue'] = []
+		var dir = Directory.new()
+		dir.remove("user://event_queue")
 #        if isinstance(response_dict, (dict, list)):
 #            post_to_log("Payload found in response. Contents can explain what fields are causing a problem.")
 #            post_to_log(events_response.text)
@@ -561,7 +579,7 @@ func annotate_event_with_default_values():
 
 	# TEST IDFA / IDFV
 	#var idfa = 'AEBE52E7-03EE-455A-B3C4-E57283966239'
-	var idfa = OS.get_unique_id()
+	var idfa = OS.get_unique_id().to_lower()
 	var idfv = 'AEBE52E7-03EE-455A-B3C4-E57283966239'
 
 	var default_annotations = {
