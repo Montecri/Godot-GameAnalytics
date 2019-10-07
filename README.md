@@ -22,29 +22,32 @@ USAGE INSTRUCTIONS:
 
 . Add that to your main .gd:
 
-```python
-var GAs = load("res://GameAnalytics.gd")
-var GA = GAs.new()
+```gdscript
+extends Node
+
+var GameAnalytics = preload("res://GameAnalytics.gd")
+var GA = GameAnalytics.new()
 
 func _ready():
-  GA.game_key = <your_game_key_supplied_by_GameAnalytics>
-  GA.secret_key = <your_secret_key_supplied_by_GameAnalytics>
-  GA.base_url = "http://api.gameanalytics.com"
+	# Uncomment the following lines to use production keys instead of sandbox keys
+	# GA.game_key = <your_game_key_supplied_by_GameAnalytics>
+	# GA.secret_key = <your_secret_key_supplied_by_GameAnalytics>
+	# GA.base_url = "http://api.gameanalytics.com"
 
-  # Run once per session
-  init_response = GA.request_init()
+	# Run once per session
+	var init_response = GA.request_init()
 
-  # Add events to queue
-  GA.add_to_event_queue(GA.get_test_design_event("player:new_level", 1))
-  GA.add_to_event_queue(GA.get_test_design_event("player:new_level", 2))
+	# Add events to queue
+	GA.add_to_event_queue(GA.get_test_design_event("player:new_level", 1))
+	GA.add_to_event_queue(GA.get_test_design_event("player:new_level", 2))
 
-  # Submit events and flush queue - return code will indicate success (200) or failure (400, 401, 404)
-  var returned = GA.submit_events()
+	# Submit events and flush queue - return code will indicate success (200) or failure (400, 401, 404)
+	var returned = GA.submit_events()
 ```
 
 The following GameAnalytics calls are also available:
 
-```python
+```gdscript
 add_to_event_queue(get_test_design_event(<string>, <value>))
 add_to_event_queue(get_test_user_event())
 add_to_event_queue(get_test_business_event_dict())
@@ -53,16 +56,6 @@ add_to_event_queue(get_test_session_end_event(200))
 
 Study GameAnalytics.gd (commented examples there) and GameAnalytics REST API page to understand what else can be submitted.
 
-NOTE: While testing on my Windows machine, GameAnalytics refused "Windows" as a valid os/platform, so I put this code before GA.request_init() to work around that. YMMV
-
-```python
-	if GA.platform == "Windows":
-		GA.platform = "android"
-
-	if GA.os_version == "Windows":
-		GA.os_version = "android 4.4.4"
- ```
- 
 TODO
 
 . Correctly calculate client_ts offset

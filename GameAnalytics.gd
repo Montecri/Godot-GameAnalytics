@@ -1,4 +1,4 @@
-extends Node
+extends Reference
 # GameAnalytics <https://gameanalytics.com/> native GDScript REST API implementation
 # Cross-platform. Should work in every platform supported by Godot
 # Adapted from REST_v2_example.py by Cristiano Reis Monteiro <cristianomonteiro@gmail.com> Abr/2018
@@ -17,6 +17,17 @@ extends Node
 """
 # From https://github.com/xsellier/godot-uuid
 const UUID = preload("res://uuid.gd")
+
+# Platform remaps
+const PLATFORMS = {
+	'Windows': 'windows',
+	'X11': 'linux',
+	'OSX': 'mac_osx',
+	'Android': 'android',
+	'iOS': 'ios',
+	'HTML5': 'webgl',
+}
+
 # device information
 var DEBUG = false
 var returned
@@ -25,18 +36,16 @@ var response_code
 #var uuid = "000002"
 var uuid = UUID.v4()
 
-# For some reason GameAnalytics only accepts lower case. Weird but happened to me
-var platform = OS.get_name().to_lower()
-#var os_version = OS.get_name()
+var platform = PLATFORMS[OS.get_name()]
 # Couldn't find a way to get OS version yet. Need to adapt for iOS or anything else
-var os_version = "android 4.4.4"
+var os_version = ""
 var sdk_version = 'rest api v2'
 var device = OS.get_model_name().to_lower()
 var manufacturer = OS.get_name().to_lower()
 
 # game information
 var build_version = 'alpha 0.0.1'
-var engine_version = 'Godot 3.0.2'
+var engine_version = 'godot {major}.{minor}.{patch}'.format(Engine.get_version_info())
 
 # sandbox game keys
 var game_key = "5c6bcb5402204249437fb5a7a80a4959"
@@ -179,13 +188,24 @@ func add_to_event_queue(event_dict):
 
 # requesting init URL and returning result
 func request_init():
-		# Get version number on Android. Need something similar for iOS
+	# Get version number on Android. Need something similar for iOS
 	if platform == "android":
 		var output = []
-		var pid = OS.execute("getprop", ["ro.build.version.release"], true, output)
-		# Trimming new line char at the end
-		output[0] = output[0].substr(0, output[0].length() - 1)
-		os_version = platform + " " + output[0]
+		OS.execute("getprop", ["ro.build.version.release"], true, output)
+		os_version = platform + " " + output[0].strip_edges()
+	elif platform == 'windows':
+		manufacturer = 'microsoft'
+		var output = []
+		# Executing shell script `ver` (cmd.exe only)
+		OS.execute('cmd', ['/c', 'ver'], true, output)
+		if not output.empty():
+			var rg = RegEx.new()
+			# Output example: `Microsoft Windows [Version 10.0.18362.388]`
+			rg.compile("(\\d+\\.\\d+\\.\\d+)")
+			var result = rg.search(output[0])
+			if result:
+				os_version = result.get_string(1).strip_edges()
+		os_version = platform + ' ' + os_version
 
 	var init_payload = {
 		'platform': platform,
@@ -530,42 +550,42 @@ func get_test_design_event(event_id, value):
 	return event_dict
 	
 static func merge_dir(target, patch):
-    for key in patch:
-        target[key] = patch[key]
+	for key in patch:
+		target[key] = patch[key]
 
 static func merge_dir2(target, patch):
-    for key in patch:
-        if target.has(key):
-            var tv = target[key]
-            if typeof(tv) == TYPE_DICTIONARY:
-                merge_dir(tv, patch[key])
-            else:
-                target[key] = patch[key]
-        else:
-            target[key] = patch[key]
+	for key in patch:
+		if target.has(key):
+			var tv = target[key]
+			if typeof(tv) == TYPE_DICTIONARY:
+				merge_dir(tv, patch[key])
+			else:
+				target[key] = patch[key]
+		else:
+			target[key] = patch[key]
 			
 func get_gzip_string(string_for_gzip):
-    var f = File.new()
+	var f = File.new()
 
-    f.open_compressed("user://gzip", File.WRITE, File.COMPRESSION_GZIP)
-    #f.store_buffer(string_for_gzip.to_utf8())
-    f.store_string(string_for_gzip)
-    f.close()
+	f.open_compressed("user://gzip", File.WRITE, File.COMPRESSION_GZIP)
+	#f.store_buffer(string_for_gzip.to_utf8())
+	f.store_string(string_for_gzip)
+	f.close()
 
-    f.open("user://gzip", File.READ)
-    #var enc_text = f.get_buffer(f.get_len())
-    #get_string_from_utf8()
-    var enc_text = f.get_as_text()
-    #var enc_text = f.get_buffer(f.get_len()).get_string_from_utf8()
-    f.close()
+	f.open("user://gzip", File.READ)
+	#var enc_text = f.get_buffer(f.get_len())
+	#get_string_from_utf8()
+	var enc_text = f.get_as_text()
+	#var enc_text = f.get_buffer(f.get_len()).get_string_from_utf8()
+	f.close()
 #    var zip_text_file = StringIO()
 #    var zipper = gzip.GzipFile('wb', zip_text_file)
 #    zipper.write(string_for_gzip)
 #    zipper.close()
 #
 #    enc_text = zip_text_file.getvalue()
-    return enc_text
-    pass
+	return enc_text
+	pass
 
 
 # add default annotations (will alter the dict by reference)
@@ -607,11 +627,11 @@ func annotate_event_with_default_values():
 		'device': device,                      # (required: Yes - if not possible set "unknown")
 		'platform': platform,                       # (required: Yes)
 		'session_id': state_config['session_id'],   # (required: Yes)
-		#'build': build_version,                     # (required: No - send if set)
+		'build': build_version,                     # (required: No - send if set)
 		'session_num': 1,                           # (required: Yes)
+		'engine_version': engine_version,            # (required: No - send if set by an engine)
 		#'connection_type': 'wifi',                  # (required: No - send if available)
 		# 'jailbroken                               # (required: No - send if true)
-		#'engine_version': engine_version            # (required: No - send if set by an engine)
 	}
 	#event_dict.update(default_annotations)
 	#state_config['event_queue'].append(default_annotations)
