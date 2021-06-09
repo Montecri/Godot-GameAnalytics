@@ -32,7 +32,7 @@ func _ready():
   GA.base_url = "http://api.gameanalytics.com"
 
   # Run once per session
-  init_response = GA.request_init()
+  var init_response = GA.request_init()
 
   # Add events to queue
   GA.add_to_event_queue(GA.get_test_design_event("player:new_level", 1))
