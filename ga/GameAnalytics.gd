@@ -18,11 +18,9 @@ const PLATFORMS = {
 const INIT_ENDPOINT = '/v2/%s/init'
 const EVENTS_ENDPOINT = '/v2/%s/events'
 
-# NOTE: This plugin is using the "rest api v2" but GA docs
-# supports "godot [0-9]{0,5}(\\.[0-9]{0,5}){0,2})"
 const api_version = 2
 const plugin_version = '1.0'
-const sdk_version = 'godot %s.%s' % [api_version, plugin_version]
+const sdk_version = 'rest api v2'
 var engine_version = 'godot {major}.{minor}.{patch}'.format(Engine.get_version_info())
 var platform
 var os_version
