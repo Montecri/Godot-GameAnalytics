@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ProductBuildVersion</key>
+	<string>18E2034</string>
+	<key>ProductCopyright</key>
+	<string>1983-2019 Apple Inc.</string>
+	<key>ProductName</key>
+	<string>Mac OS X</string>
+	<key>ProductUserVisibleVersion</key>
+	<string>10.14.4</string>
+	<key>ProductVersion</key>
+	<string>10.14.4</string>
+	<key>iOSSupportVersion</key>
+	<string>12.2</string>
+</dict>
+</plist>
