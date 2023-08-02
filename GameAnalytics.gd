@@ -15,21 +15,19 @@ extends Node
 7. add session_end event to queue
 8. submit events in queue
 """
-# From https://github.com/xsellier/godot-uuid
-const UUID = preload("res://uuid.gd")
 # device information
-var DEBUG = false
+var DEBUG = true
 var returned
 var response_data
 var response_code
-#var uuid = "000002"
-var uuid = UUID.v4()
+var uuid = "000002"
+#var uuid = UUID.v4()
 
 # For some reason GameAnalytics only accepts lower case. Weird but happened to me
 var platform = OS.get_name().to_lower()
 #var os_version = OS.get_name()
 # Couldn't find a way to get OS version yet. Need to adapt for iOS or anything else
-var os_version = "android 4.4.4"
+var os_version = "38"
 var sdk_version = 'rest api v2'
 var device = OS.get_model_name().to_lower()
 var manufacturer = OS.get_name().to_lower()
@@ -164,30 +162,33 @@ func add_to_event_queue(event_dict):
 	#annotate_event_with_default_values(event_dict)
 	#annotate_event_with_default_values()
 	# Load saved events, if any
-	var f = File.new()
+	var f = FileAccess
+	var file
 	if f.file_exists("user://event_queue"):
-		f.open("user://event_queue", File.READ)
-		state_config['event_queue'] = f.get_var()
-		f.close()
+		file = f.open("user://event_queue", FileAccess.READ)
+		state_config['event_queue'] = file.get_var()
+		file.close()
 	
 	state_config['event_queue'].append(event_dict)
 	
 	#Save to file
-	f.open("user://event_queue", File.WRITE)
-	f.store_var(state_config['event_queue'])
-	f.close()
+	file = f.open("user://event_queue", FileAccess.WRITE)
+	file.store_var(state_config['event_queue'], false)
+	file.close()
 
 # requesting init URL and returning result
 func request_init():
 		# Get version number on Android. Need something similar for iOS
-	if platform == "android":
-		var output = []
-		var pid = OS.execute("getprop", ["ro.build.version.release"], true, output)
-		# Trimming new line char at the end
-		output[0] = output[0].substr(0, output[0].length() - 1)
-		os_version = platform + " " + output[0]
+# For somebody else to fix. only useful for mobile os
+#	if platform == "android":
+#		var output = []
+#		var pid = OS.execute("getprop", ["ro.build.version.release"], true, output, false)
+#		# Trimming new line char at the end
+#		output[0] = output[0].substr(0, output[0].length() - 1)
+#		os_version = platform + " " + output[0]
 
 	var init_payload = {
+		'user_id': uuid,
 		'platform': platform,
 		'os_version': os_version,
 		'sdk_version': sdk_version
@@ -200,7 +201,7 @@ func request_init():
 	url_init = "/v2/" + game_key + "/init"
 	#var queryString = requests.query_string_from_dict(init_payload)
 	#var init_payload_json = json.dumps(init_payload)
-	var init_payload_json = to_json(init_payload)
+	var init_payload_json = JSON.stringify(init_payload)
 
 	var headers = [
 		"Authorization: " + Marshalls.raw_to_base64(hmac_sha256(init_payload_json, secret_key)),
@@ -258,7 +259,7 @@ func request_init():
 
 		# This method works for both anyway
 
-		var rb = PoolByteArray() # Array that will hold the data
+		var rb = PackedByteArray() # Array that will hold the data
 
 		while requests.get_status() == HTTPClient.STATUS_BODY:
 			# While there is body left to be read
@@ -279,7 +280,7 @@ func request_init():
 	#status_code = init_response.status_code
 	status_code = requests.get_response_code()
 	#try:
-	response_dict = to_json(init_response)
+	response_dict = JSON.stringify(init_response)
 #    except:
 #        response_dict = None
 
@@ -326,7 +327,7 @@ func submit_events():
 	#try:
 	# Refreshing url_events since game key might have been changed externally
 	url_events = "/v2/" + game_key + "/events"
-	var event_list_json = to_json(state_config['event_queue'])
+	var event_list_json = JSON.stringify(state_config['event_queue'])
 #    except:
 #        post_to_log("Event queue failed JSON encoding!")
 #        event_list_json = None
@@ -387,7 +388,7 @@ func submit_events():
 
 		# This method works for both anyway
 
-		var rb = PoolByteArray() # Array that will hold the data
+		var rb = PackedByteArray() # Array that will hold the data
 
 		while requests.get_status() == HTTPClient.STATUS_BODY:
 			# While there is body left to be read
@@ -423,8 +424,9 @@ func submit_events():
 		# If bad request, then some parameter is very wrong. Eliminating queue in order to no hold submission
 		# In future instances where the bad parameter is no longer existing
 		state_config['event_queue'] = []
-		var dir = Directory.new()
-		dir.remove("user://event_queue")
+		var dir = DirAccess
+		var directory = dir.open("user://event_queue")
+		directory.remove("user://event_queue")
 #        if isinstance(response_dict, (dict, list)):
 #            post_to_log("Payload found in response. Contents can explain what fields are causing a problem.")
 #            post_to_log(events_response.text)
@@ -449,9 +451,10 @@ func submit_events():
 		# clear event queue
 		# If submitte successfully, then clear queue and remove queu file to not create duplicate entries
 		state_config['event_queue'] = []
-		var dir = Directory.new()
-		dir.remove("user://event_queue")
-
+		var dir = DirAccess
+		var directory = dir.open("user://event_queue")
+		directory.remove("user://event_queue")
+		
 	else:
 		post_to_log("Event submission FAILED!")
 
@@ -469,7 +472,7 @@ func generate_new_session_id():
 func update_client_ts_offset(server_ts):
 	# calculate client_ts using offset from server time
 	#datetime.utcnow()
-	var now_ts = OS.get_unix_time_from_datetime(OS.get_datetime())
+	var now_ts = Time.get_unix_time_from_datetime_dict(Time.get_datetime_dict_from_system())
 #    var client_ts = calendar.timegm(now_ts.timetuple())
 	var client_ts = now_ts
 	var offset = client_ts - server_ts
@@ -530,52 +533,52 @@ func get_test_design_event(event_id, value):
 	return event_dict
 	
 static func merge_dir(target, patch):
-    for key in patch:
-        target[key] = patch[key]
+	for key in patch:
+		target[key] = patch[key]
 
 static func merge_dir2(target, patch):
-    for key in patch:
-        if target.has(key):
-            var tv = target[key]
-            if typeof(tv) == TYPE_DICTIONARY:
-                merge_dir(tv, patch[key])
-            else:
-                target[key] = patch[key]
-        else:
-            target[key] = patch[key]
+	for key in patch:
+		if target.has(key):
+			var tv = target[key]
+			if typeof(tv) == TYPE_DICTIONARY:
+				merge_dir(tv, patch[key])
+			else:
+				target[key] = patch[key]
+		else:
+			target[key] = patch[key]
 			
 func get_gzip_string(string_for_gzip):
-    var f = File.new()
+	var f = FileAccess
 
-    f.open_compressed("user://gzip", File.WRITE, File.COMPRESSION_GZIP)
-    #f.store_buffer(string_for_gzip.to_utf8())
-    f.store_string(string_for_gzip)
-    f.close()
+	var file = f.open_compressed("user://gzip", FileAccess.WRITE, FileAccess.COMPRESSION_GZIP)
+	#f.store_buffer(string_for_gzip.to_utf8())
+	file.store_string(string_for_gzip)
+	file.close()
 
-    f.open("user://gzip", File.READ)
-    #var enc_text = f.get_buffer(f.get_len())
-    #get_string_from_utf8()
-    var enc_text = f.get_as_text()
-    #var enc_text = f.get_buffer(f.get_len()).get_string_from_utf8()
-    f.close()
+	file = f.open("user://gzip", FileAccess.READ)
+	#var enc_text = f.get_buffer(f.get_len())
+	#get_string_from_utf8()
+	var enc_text = file.get_as_text()
+	file.close()
+	#var enc_text = f.get_buffer(f.get_len()).get_string_from_utf8()
 #    var zip_text_file = StringIO()
 #    var zipper = gzip.GzipFile('wb', zip_text_file)
 #    zipper.write(string_for_gzip)
 #    zipper.close()
 #
 #    enc_text = zip_text_file.getvalue()
-    return enc_text
-    pass
+	return enc_text
+	pass
 
 
 # add default annotations (will alter the dict by reference)
 #func annotate_event_with_default_values(event_dict):
 func annotate_event_with_default_values():
-	var now_ts = OS.get_datetime()
+	var now_ts = Time.get_datetime_string_from_system()
 	# datetime.utcnow()
 	# calculate client_ts using offset from server time
 	#var client_ts = calendar.timegm(now_ts.timetuple()) - state_config['client_ts_offset']
-	var client_ts = OS.get_unix_time_from_datetime(OS.get_datetime())
+	var client_ts = Time.get_unix_time_from_datetime_dict(Time.get_datetime_dict_from_system())
 
 	# TEST IDFA / IDFV
 	#var idfa = 'AEBE52E7-03EE-455A-B3C4-E57283966239'
@@ -632,7 +635,7 @@ func hmac_sha256(message, key):
 	var k
 	
 	if key.length() <= 64:
-		k = key.to_utf8()
+		k = key.to_utf8_buffer()
 
 	# Hash key if length > 64
 	if key.length() > 64:
@@ -642,10 +645,10 @@ func hmac_sha256(message, key):
 	while k.size() < 64:
 		k.append(convert_hex_to_dec("00"))
 
-	var i = "".to_utf8()
-	var o = "".to_utf8()
-	var m = message.to_utf8()
-	var s = File.new()
+	var i = "".to_utf8_buffer()
+	var o = "".to_utf8_buffer()
+	var m = message.to_utf8_buffer()
+	var s = FileAccess
 			
 	while x < 64:
 		o.append(k[x] ^ 0x5c)
@@ -654,12 +657,12 @@ func hmac_sha256(message, key):
 		
 	var inner = i + m
 	
-	s.open("user://temp", File.WRITE)
-	s.store_buffer(inner)
-	s.close()
+	var file = s.open("user://temp", FileAccess.WRITE)
+	file.store_buffer(inner)
+	file.close()
 	var z = s.get_sha256("user://temp")
 	
-	var outer = "".to_utf8()
+	var outer = "".to_utf8_buffer()
 	
 	x = 0
 	while x < 64:
@@ -668,13 +671,13 @@ func hmac_sha256(message, key):
 	
 	outer = o + outer
 	
-	s.open("user://temp", File.WRITE)
-	s.store_buffer(outer)
-	s.close()
+	file = s.open("user://temp", FileAccess.WRITE)
+	file.store_buffer(outer)
+	file.close()
 	
 	z = s.get_sha256("user://temp")
 	
-	outer = "".to_utf8()
+	outer = "".to_utf8_buffer()
 	
 	x = 0
 	while x < 64:
