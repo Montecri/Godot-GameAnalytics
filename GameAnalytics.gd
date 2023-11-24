@@ -438,7 +438,7 @@ func submit_events():
 #        sys.exit()
 	elif status_code != 200:
 		post_to_log(status_code_string)
-		post_to_log("Submit events request did not succeed! Perhaps offline.. ")
+		post_to_log("Submit events request did not succeed! Error: " + str(requests.get_status()) )
 #        sys.exit()
 
 #    if not isinstance(response_dict, dict):
